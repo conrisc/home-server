@@ -85,7 +85,8 @@ services:
       - proxy
 
   cron:
-    image: nextcloud-cron:29.0.1-custom # build custom image with cron for https://apps.nextcloud.com/apps/previewgenerator
+    build: https://github.com/conrisc/home-server.git#master:stacks/nextcloud/cron # build custom image with cron for https://apps.nextcloud.com/apps/previewgenerator
+    # image: nextcloud-cron:29.0.1-custom # use custom image with cron for https://apps.nextcloud.com/apps/previewgenerator
     # image: nextcloud # regular nextcloud cron with different entrypoint to start cron
     restart: always
     volumes_from:
