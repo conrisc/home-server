@@ -1,0 +1,15 @@
+services:
+    jellyfin:
+        image: jellyfin/jellyfin:latest
+        user: uid:gid  # replace, e.g. with 1000:1000
+        group_add:
+            - "109" # Probably requried for Hardware acceleration. Taken from command `getent group render | cut -d: -f3`
+        volumes:
+            - /path/to/jellyfin/config:/config # replace path
+            - /path/to/jellyfin/cache:/cache # replace path
+            - /path/to/dir/with/media/files:/media   # replace path
+        network_mode: host
+        # ports: 
+          # -"8096:8096"
+        devices:
+            - /dev/dri/renderD128:/dev/dri/renderD128 # probably required for Hardware acceleration

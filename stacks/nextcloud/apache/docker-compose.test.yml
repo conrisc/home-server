@@ -1,0 +1,31 @@
+# This template is based on this example (without reverse proxy): https://github.com/nextcloud/docker/blob/master/.examples/docker-compose/with-nginx-proxy/postgres/apache/docker-compose.yml
+
+# Stack to test the latest nextcloud (apache) version. The nextcloud will be exposed on port 8081
+
+services:
+
+  database:
+    image: postgres
+    restart: always
+    volumes:
+      - /var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+
+  nextcloud:
+    restart: always
+    build: .
+    image: nextcloud
+    depends_on:
+      - database
+    ports:
+      - 8081:80
+    volumes:
+      - /var/www/html
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_HOST=database

@@ -1,0 +1,107 @@
+# This template is based on this example: https://github.com/nextcloud/docker/blob/master/.examples/docker-compose/with-nginx-proxy/postgres/fpm/docker-compose.yml
+
+services:
+
+  database:
+    image: postgres
+    restart: always
+    volumes:
+      - /path/to/place/you/want/to/store/postgres:/var/lib/postgresql/data # define path
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=<PASSWORD_FOR_DB> # define password for database
+
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --requirepass <PASSWORD_FOR_REDIS> # define password for redis
+
+  nextcloud:
+    restart: always
+    image: nextcloud:fpm
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - /path/to/place/you/want/to/store/nextcloud//var/www/html # define path
+      - /path/to/place/you/want/to/store/nextcloud/data:/var/www/html/data # define path
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=<PASSWORD_FOR_DB> # replace with password
+      - POSTGRES_HOST=database
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=<PASSWORD_FOR_REDIS> # replace with password
+
+  web:
+    image: nginx
+    restart: always
+    environment:
+      - VIRTUAL_HOST=example.ddns.net,your-website.com # pass host(s) on which your server will be available
+      - LETSENCRYPT_HOST=example.ddns.net,your-website.com # pass host(s) on which your server will be available
+      - LETSENCRYPT_EMAIL=<email> # pass email used for letsencrypt
+    expose:
+      - 80
+    volumes:
+      - /path/to/nginx.conf:/etc/nginx/nginx.conf:ro # replace path; Take this file from https://github.com/nextcloud/docker/tree/master/.examples/docker-compose/with-nginx-proxy/postgres/fpm/web
+    volumes_from:
+      - nextcloud
+    depends_on:
+      - nextcloud
+    networks:
+      - proxy-tier
+      - default
+
+  proxy:
+    image: nginxproxy/nginx-proxy
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    labels:
+      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+    volumes:
+      - /path/to/uploadsize.conf:/etc/nginx/conf.d/uploadsize.conf:ro # replace path; Take the file from .examples/docker-compose/with-nginx-proxy/postgres/fpm/proxy/uploadsize.conf
+      - certs:/etc/nginx/certs:ro
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - proxy-tier
+
+  letsencrypt-companion:
+    image: nginxproxy/acme-companion
+    restart: always
+    volumes_from:
+      - proxy
+    volumes:
+      - acme:/etc/acme.sh
+      - certs:/etc/nginx/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy-tier
+    depends_on:
+      - proxy
+
+  cron:
+    image: nextcloud-cron:29.0.1-custom # build custom image with cron for https://apps.nextcloud.com/apps/previewgenerator
+    # image: nextcloud # regular nextcloud cron with different entrypoint to start cron
+    restart: always
+    volumes_from:
+      - nextcloud
+    entrypoint: /cron.sh
+    depends_on:
+      - database
+      - redis
+
+volumes:
+  certs:
+  acme:
+  vhost.d:
+  html:
+
+networks:
+  proxy-tier:
+    name: proxy-tier
+    driver: bridge

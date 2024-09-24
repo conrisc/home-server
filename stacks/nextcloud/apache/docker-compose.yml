@@ -1,0 +1,57 @@
+# This template is based on this example (with excluded reverse proxy): https://github.com/nextcloud/docker/blob/master/.examples/docker-compose/with-nginx-proxy/postgres/apache/docker-compose.yml
+
+services:
+
+  database:
+    image: postgres
+    restart: always
+    volumes:
+      - /path/to/place/you/want/to/store/postgres:/var/lib/postgresql/data # define path
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=<PASSWORD_FOR_DB> # define password for database
+  
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --requirepass <PASSWORD_FOR_REDIS> # define password for redis
+
+  nextcloud:
+    restart: always
+    image: nextcloud
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - /path/to/place/you/want/to/store/nextcloud//var/www/html # define path
+      - /path/to/place/you/want/to/store/nextcloud/data:/var/www/html/data # define path
+    environment:
+      - VIRTUAL_HOST=example.ddns.net,your-website.com # pass host(s) on which your server will be available
+      - LETSENCRYPT_HOST=example.ddns.net,your-website.com # pass host(s) on which your server will be available
+      - LETSENCRYPT_EMAIL=<email> # pass email used for letsencrypt
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=<PASSWORD_FOR_DB> # replace with password
+      - POSTGRES_HOST=database
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=<PASSWORD_FOR_REDIS> # replace with password
+    networks:
+      - proxy-tier
+      - default
+
+
+  cron: # It's worth to have it 
+    image: nextcloud-cron:29.0.1-custom # build custom image with cron for https://apps.nextcloud.com/apps/previewgenerator
+    # image: nextcloud # regular nextcloud cron with different entrypoint to start cron
+    restart: always
+    volumes_from:
+      - nextcloud
+    entrypoint: /cron.sh
+    depends_on:
+      - database
+      - redis
+
+networks:
+  proxy-tier: # network created and exposed by external reverse-proxy stack
+    external: true
