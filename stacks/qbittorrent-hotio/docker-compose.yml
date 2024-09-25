@@ -1,9 +1,11 @@
+# Template for qBittorrent wrapped by Hotio with configured VPN (more here: https://hotio.dev/containers/qbittorrent)
+
 services:
   qbittorrent:
     container_name: qbittorrent
     image: ghcr.io/hotio/qbittorrent
     ports:
-      - "3443:8080"
+      - "<EXPOSED_PORT_FOR_WEBUI>:8080" # Set port on which you want to expose Web UI
     environment:
       - PUID=1000
       - PGID=1000

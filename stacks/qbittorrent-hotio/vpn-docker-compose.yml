@@ -1,0 +1,44 @@
+# Template for qBittorrent wrapped by Hotio with configured VPN (more here: https://hotio.dev/containers/qbittorrent)
+
+services:
+  qbittorrent:
+    container_name: qbittorrent
+    # hostname: qbittorrent.internal # VPN Setup
+    image: ghcr.io/hotio/qbittorrent
+    ports:
+      - "<EXPOSED_PORT_FOR_WEBUI>:8080" # Set port on which you want to expose Web UI
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Etc/UTC
+      - WEBUI_PORTS=8080/tcp,8080/udp
+      # VPN Setup Env Variables------------------------
+      - VPN_ENABLED=true
+      - VPN_CONF=wg0  # set name for wg0.conf file (for PIA it is automatically downloaded)
+      - VPN_PROVIDER=pia
+      - VPN_LAN_NETWORK=<IP>/<CIDR> # IP's within local network which should be able to reach exposed ports. e.g '192.168.1.0/24'
+      - VPN_LAN_LEAK_ENABLED=false
+      # - VPN_EXPOSE_PORTS_ON_LAN # WEBUI_PORTS already does that
+      - VPN_AUTO_PORT_FORWARD=true
+      - VPN_AUTO_PORT_FORWARD_TO_PORTS=<PORT>/tcp # After first start of container, grab forwarded port assigned by PIA and pass it here - to match external and internal ports. https://www.reddit.com/r/VPNTorrents/comments/17cr62j/does_external_port_number_need_to_match_internal/
+      - VPN_KEEP_LOCAL_DNS=false  # Not sure if it should be true or not
+      - VPN_FIREWALL_TYPE=auto
+      - VPN_HEALTHCHECK_ENABLED=true
+      - VPN_PIA_USER=<PIA_USERNAME> # pass PIA username
+      - VPN_PIA_PASS=<PIA_PASSWORD> # pass PIA password
+      - VPN_PIA_PREFERRED_REGION=czech # This is optional
+      - VPN_PIA_DIP_TOKEN=no
+      - VPN_PIA_PORT_FORWARD_PERSIST=true # With false, PIA would assign new port every time it's reconnected, therefore Internal and External ports woudn't match (VPN_AUTO_PORT_FORWARD_TO_PORTS)
+      - PRIVOXY_ENABLED=false
+      - UNBOUND_ENABLED=false
+    volumes:
+      - /path/you/want/store/hotio-torrent:/config  # replace path
+      - /path/you/want/store/hotio-torrent:/data # replace path
+    # VPN Setup START-------------
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    # VPN Setup END---------------
